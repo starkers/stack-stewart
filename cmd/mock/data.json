@@ -1,0 +1,106 @@
+{
+  "stacks": [
+    {
+      "agent": "one",
+      "containers": [
+        {
+          "image": "myapp:master-123123",
+          "name": "main"
+        }
+      ],
+      "kind": "deployment",
+      "lane": "dev",
+      "name": "frontend",
+      "namespace": "dev",
+      "replicas": {
+        "available": 1,
+        "desired": 1,
+        "ready": 1,
+        "updated": 1
+      }
+    },
+    {
+      "agent": "one",
+      "containers": [
+        {
+          "image": "myapp:master-123123",
+          "name": "main"
+        },
+        {
+          "image": "opa:latest",
+          "name": "opa"
+        }
+      ],
+      "kind": "deployment",
+      "lane": "dev",
+      "name": "backend",
+      "namespace": "dev",
+      "replicas": {
+        "available": 1,
+        "desired": 1,
+        "ready": 1,
+        "updated": 1
+      }
+    },
+    {
+      "agent": "one",
+      "containers": [
+        {
+          "image": "failz:master-123123",
+          "name": "failz"
+        }
+      ],
+      "kind": "deployment",
+      "lane": "dev",
+      "namespace": "fail-no-name",
+      "replicas": {
+        "available": 1,
+        "desired": 1,
+        "ready": 1,
+        "updated": 1
+      }
+    },
+    {
+      "agent": "two",
+      "containers": [
+        {
+          "image": "myapp:release-22113334",
+          "name": "main"
+        }
+      ],
+      "kind": "deployment",
+      "lane": "prod",
+      "name": "frontend",
+      "namespace": "prod",
+      "replicas": {
+        "available": 2,
+        "desired": 2,
+        "ready": 2,
+        "updated": 2
+      }
+    },
+    {
+      "agent": "two",
+      "containers": [
+        {
+          "image": "myapp:release-22331144",
+          "name": "main"
+        },
+        {
+          "image": "opa:latest",
+          "name": "opa"
+        }
+      ],
+      "kind": "deployment",
+      "lane": "prod",
+      "name": "backend",
+      "namespace": "prod",
+      "replicas": {
+        "available": 3,
+        "desired": 3,
+        "ready": 3,
+        "updated": 3
+      }
+    }
+  ]
+}
