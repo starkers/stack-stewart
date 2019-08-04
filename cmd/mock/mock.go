@@ -4,17 +4,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/starkers/stack-stewart/shared"
 )
 
 func main() {
+	token := "48d3cdba-f530-4c67-92d0-0fe99aa53525"
 	// Read file with data
 	file, _ := ioutil.ReadFile("data.json")
 	// create an empty var of this type
@@ -37,18 +36,46 @@ func main() {
 			)
 
 			data := data.Stacks[i]
-			b := new(bytes.Buffer)
-			json.NewEncoder(b).Encode(data)
+
 			url := "http://localhost:8080/stacks"
-			// url := "https://httpbin.org/post"
-			res, err := http.Post(url, "application/json; charset=utf-8", b)
-			if err != nil {
-				log.Printf("%v\n", err)
-			}
-			io.Copy(os.Stdout, res.Body)
-			fmt.Printf("\n")
+			_ = PostStack(url, data, token)
+
 		}
 		fmt.Printf("sleeping")
 		time.Sleep(time.Second * 5)
 	}
+}
+
+// PostStack will attempt to post a stack to the API server
+func PostStack(url string, data shared.Stack, token string) error {
+	client := &http.Client{}
+	dataBytes := new(bytes.Buffer)
+	json.NewEncoder(dataBytes).Encode(data)
+
+	req, err := http.NewRequest(
+		"POST",
+		fmt.Sprintf("%s", url),
+		dataBytes)
+
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	// add authorization header to the req
+	req.Header.Add("Authorization", "Bearer " + token)
+	if err != nil {
+		log.Println(err)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+
+	f, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	resp.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(f))
+	return nil
 }
