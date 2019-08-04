@@ -59,7 +59,7 @@ func main() {
 
 	e := echo.New()
 
-	e.HideBanner = false
+	e.HideBanner = true
 	e.HidePort = true
 	e.Debug = false
 	e.Logger.SetLevel(99) //disable json logging

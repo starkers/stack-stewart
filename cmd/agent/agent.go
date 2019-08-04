@@ -11,28 +11,29 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
-	cfgKubeConfig = kingpin.Flag(
+	CfgKubeConfig = kingpin.Flag(
 		"kubeconfig", "Full path to your KUBECONFIG file").
 		Default("nope").
 		Envar("KUBECONFIG").
 		Short('k').String()
-	cfgAgentSecretName = kingpin.Flag(
+	CfgAgentSecretName = kingpin.Flag(
 		"secret-name", "secret for agent").
 		Default("fudge").
 		Envar("SECRET_NAME").
 		Short('s').String()
-	cfgLogLevel = kingpin.Flag(
+	CfgLogLevel = kingpin.Flag(
 		"log-level", "Debug, Info").
 		Default("Info").
 		Envar("LOG_LEVEL").
 		Short('v').String()
 	// filter namespaces for this
-	namespaceFilter = "fudge=yes"
-	CfgAPIServer    = kingpin.Flag(
+	NamespaceFilter = "fudge=yes"
+	// CfgAPIServer ..
+	CfgAPIServer = kingpin.Flag(
 		"api-server", "Url of the api server.. eg 'https://api.example.com:3443'").
 		Default("http://localhost:8080/stacks").
 		Envar("API_SERVER").
@@ -45,21 +46,17 @@ func main() {
 	kingpin.Parse()
 
 	// start up log.. TODO: param for log level/json-text?
-	logrus.SetFormatter(&logrus.JSONFormatter{})
-	logrus.SetOutput(os.Stdout)
-	if *cfgLogLevel == "Debug" {
-		logrus.SetLevel(logrus.DebugLevel)
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(os.Stdout)
+	if *CfgLogLevel == "Debug" {
+		log.SetLevel(log.DebugLevel)
 	} else {
-		logrus.SetLevel(logrus.InfoLevel)
+		log.SetLevel(log.InfoLevel)
 	}
-
-	log := logrus.WithFields(logrus.Fields{
-		//"common": "common field",
-	})
 
 	// connect to kubernetes and retrieve a client-go "clientset"
 	// TODO: also return err?
-	cs := GetClientSet(log, *cfgKubeConfig)
+	cs := GetClientSet(*CfgKubeConfig)
 
 	// determines the namespace (string).. either from pod ENV vars or $NAMESPACE
 	// falls back on "default" if unable to determine.
@@ -67,19 +64,19 @@ func main() {
 	log.Debugf("detected namespace: %s", namespace)
 
 	// creates a UUID (in a k8s secret) if not already there
-	err := SecretKeyBootstrap(cs, namespace, *cfgAgentSecretName, "token", log)
+	err := SecretKeyBootstrap(cs, namespace, *CfgAgentSecretName, "token")
 	if err != nil {
 		panic(err.Error())
 	}
 
-	secretTokenString, err := GetSecretKeyData(cs, namespace, *cfgAgentSecretName, "token", log)
+	secretTokenString, err := GetSecretKeyData(cs, namespace, *CfgAgentSecretName, "token")
 	if err != nil {
 		panic(err.Error())
 	}
 	log.Infof("secretToken: %s", secretTokenString)
 
 	// we will only look for deployments inside a namespace matching these labels
-	listOpts := metav1.ListOptions{LabelSelector: namespaceFilter}
+	listOpts := metav1.ListOptions{LabelSelector: NamespaceFilter}
 
 	for {
 		// make a list of namespaces to parse for deployments
@@ -88,17 +85,16 @@ func main() {
 			log.Fatal(err.Error())
 		}
 		if len(list.Items) == 0 {
-			log.Warnf("matched 0 namespaces with %s", namespaceFilter)
+			log.Warnf("matched 0 namespaces with %s", NamespaceFilter)
 		} else {
 			// loop over namespaces
 			for _, i := range list.Items {
 				// convert the namespace Name into a string
 				namespaceString := fmt.Sprintf(i.Name)
 				log.Debugf("processing namespace: %s", namespaceString)
-				SentDeployments(
+				SendDeployments(
 					cs,
 					namespaceString,
-					log,
 					secretTokenString,
 					*CfgAPIServer,
 				)

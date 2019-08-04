@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	uuid "github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -17,6 +15,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/starkers/stack-stewart/api"
 	"github.com/starkers/stack-stewart/shared"
 
 	"k8s.io/client-go/rest"
@@ -24,7 +23,7 @@ import (
 )
 
 // GetClientSet returns a kubernetes clientset
-func GetClientSet(log *logrus.Entry, cfgKubeConfig string) *kubernetes.Clientset {
+func GetClientSet(cfgKubeConfig string) *kubernetes.Clientset {
 	if cfgKubeConfig == "nope" {
 		log.Info("loading in-cluster")
 
@@ -79,14 +78,9 @@ func GetMyNamespace() string {
 }
 
 // SecretKeyBootstrap creates an initial k8s secret if one isn't found
-func SecretKeyBootstrap(
-	client *kubernetes.Clientset,
-	namespace string,
-	secretName string,
-	key string,
-	log *logrus.Entry) error {
+func SecretKeyBootstrap(client *kubernetes.Clientset, namespace string, secretName string, key string) error {
 	// creates an initial secret (for agent mode) if it is not present
-	logrus.Info("searching for existing secret key")
+	log.Info("searching for existing secret key")
 	secretList, err := client.CoreV1().Secrets(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -129,12 +123,7 @@ func SecretKeyBootstrap(
 }
 
 // GetSecretKeyData returns a string from secret['token']
-func GetSecretKeyData(
-	client *kubernetes.Clientset,
-	namespace string,
-	secretName string,
-	key string,
-	log *logrus.Entry) (string, error) {
+func GetSecretKeyData(client *kubernetes.Clientset, namespace string, secretName string, key string) (string, error) {
 	log.Debugf("attempting to get the secret from: secret/%s (in namespace: %s) data key: %s", secretName, namespace, key)
 	secret, err := client.CoreV1().Secrets(namespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
@@ -148,15 +137,12 @@ func GetSecretKeyData(
 }
 
 // GetDeployments gets some stuff from deployments
-func GetDeployments(client *kubernetes.Clientset, namespace string, log *logrus.Entry) {
-
+func GetDeployments(client *kubernetes.Clientset, namespace string) {
 	deploymentClient := client.AppsV1().Deployments(namespace)
 	list, err := deploymentClient.List(metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-
-	// var deploymentList []string
 
 	for _, d := range list.Items {
 		// fmt.Printf(" * %s (%d replicas)\n", d.Name, *d.Spec.Replicas)
@@ -171,14 +157,8 @@ func GetDeployments(client *kubernetes.Clientset, namespace string, log *logrus.
 
 }
 
-// SendDeployment sends intel about a Deployment to the server
-func SentDeployments(
-	client *kubernetes.Clientset,
-	namespace string,
-	log *logrus.Entry,
-	tokenString string,
-	apiServer string,
-) {
+// SendDeployments sends intel about a Deployment to the PostStack function
+func SendDeployments(client *kubernetes.Clientset, namespace string, tokenString string, apiServer string) {
 	log.Println("sending........")
 	deploymentClient := client.AppsV1().Deployments(namespace)
 	list, err := deploymentClient.List(metav1.ListOptions{})
@@ -198,7 +178,6 @@ func SentDeployments(
 			s.ContainerList = append(s.ContainerList, ContainerData)
 
 		}
-		fmt.Printf("======   %+v ======", d)
 		s = shared.Stack{
 			Agent:     "somep-agent-todo",
 			Name:      d.Name,
@@ -213,44 +192,10 @@ func SentDeployments(
 			},
 			ContainerList: s.ContainerList,
 		}
-		err := PostStack(apiServer, s, tokenString, apiServer, log)
+		err := api.PostStack(apiServer, s, tokenString)
 		if err != nil {
 			return
 		}
 	}
 
-}
-
-func PostStack(
-	url string,
-	data shared.Stack,
-	token string,
-	apiServer string,
-	log *logrus.Entry,
-) error {
-	client := &http.Client{}
-	dataBytes := new(bytes.Buffer)
-	_ = json.NewEncoder(dataBytes).Encode(data)
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s", url), dataBytes)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	// add authorization header to the req
-	req.Header.Add("Authorization", "Bearer "+token)
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-	}
-
-	if err != nil {
-		log.Println(err)
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return err
 }

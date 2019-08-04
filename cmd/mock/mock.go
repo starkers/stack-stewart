@@ -1,14 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-	"net/http"
 	"time"
 
 	"github.com/labstack/gommon/log"
+	"github.com/starkers/stack-stewart/api"
 	"github.com/starkers/stack-stewart/shared"
 )
 
@@ -48,49 +46,11 @@ func main() {
 				data := data.Stacks[i]
 
 				url := "http://127.0.0.1:8080/stacks"
-				err := PostStack(url, data, token)
+				err := api.PostStack(url, data, token)
 				if err != nil {
 					log.Error(err)
 				}
 			}
 		}
 	}
-}
-
-// PostStack will attempt to post a stack to the API server
-func PostStack(url string, data shared.Stack, token string) error {
-	client := &http.Client{}
-	dataBytes := new(bytes.Buffer)
-	err := json.NewEncoder(dataBytes).Encode(data)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s", url), dataBytes)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	// add authorization header to the req
-	req.Header.Add("Authorization", "Bearer "+token)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err := resp.Body.Close()
-		if err != nil {
-			log.Error(err)
-		}
-	}()
-
-	f, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(f))
-	return nil
 }
