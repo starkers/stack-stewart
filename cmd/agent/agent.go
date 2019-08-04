@@ -32,12 +32,11 @@ var (
 		Short('v').String()
 	// filter namespaces for this
 	namespaceFilter = "fudge=yes"
-	cfgApiServer = kingpin.Flag(
+	CfgAPIServer    = kingpin.Flag(
 		"api-server", "Url of the api server.. eg 'https://api.example.com:3443'").
-		Default("http://localhost:8080").
+		Default("http://localhost:8080/stacks").
 		Envar("API_SERVER").
 		Short('a').String()
-
 )
 
 func main() {
@@ -100,10 +99,9 @@ func main() {
 					cs,
 					namespaceString,
 					log,
-					*cfgApiServer,
-					*cfgApiServer,
 					secretTokenString,
-					)
+					*CfgAPIServer,
+				)
 			}
 		}
 		time.Sleep(30 * time.Second)

@@ -19,6 +19,8 @@ all: api build_server build_agent ## do all the things
 dep: ## Get the dependencies
 	go get -v -d ./...
 
+build: build_agent build_server
+
 build_server: dep api ## Build the binary file for server
 	go build -i -v -o $(SERVER_OUT) $(SERVER_PKG_BUILD)
 

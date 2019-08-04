@@ -4,3 +4,5 @@
 agents:
   - name: test # the name of the agent
     token: 48d3cdba-f530-4c67-92d0-0fe99aa53525  # UUID of the agent will go next to its name
+  - name: mock # the name of the agent
+    token: 48d3cdba-f530-4c67-92d0-0fe99aa53525  # UUID of the agent will go next to its name

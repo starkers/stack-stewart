@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-
 	//"io/ioutil"
 	"net/http"
 	"time"
@@ -62,6 +61,7 @@ func main() {
 	e.HideBanner = false
 	e.HidePort = true
 	e.Debug = false
+	e.Logger.SetLevel(99) //disable json logging
 	e.Use(echoprometheus.NewMetric())
 	e.Use(middleware.Logger())
 
@@ -188,7 +188,10 @@ func PostStack(db *buntdb.DB) echo.HandlerFunc {
 		input := new(shared.Stack)
 		if err = c.Bind(input); err != nil {
 			// if binding to the struct fails
-			log.Print(input)
+			//log.Print(input)
+			fmt.Println("BIND ERR")
+			fmt.Printf("%+v\n", input)
+			//log.Info("BIND ERRROR.... %v", input )
 			return c.String(http.StatusBadRequest, "error binding input data")
 		}
 		if err = c.Validate(input); err != nil {
