@@ -10,10 +10,10 @@ type Containers struct {
 
 // Replicas ..
 type Replicas struct {
-	Available int `json:"available" validate:"required"`
-	Desired   int `json:"desired" validate:"required"`
-	Ready     int `json:"ready" validate:"required"`
-	Updated   int `json:"updated" validate:"required"`
+	Available int32 `json:"available" validate:"required"`
+	//Desired   int32 `json:"desired" validate:"required"`
+	Ready     int32 `json:"ready" validate:"required"`
+	Updated   int32 `json:"updated" validate:"required"`
 }
 
 // Stack ..

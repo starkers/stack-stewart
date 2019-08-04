@@ -1,18 +1,23 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
-
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
+	"io"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp" //GCP support
+	"net/http"
 
 	"os"
 	"strings"
+
+	"github.com/starkers/stack-stewart/shared"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -164,4 +169,77 @@ func GetDeployments(client *kubernetes.Clientset, namespace string, log *logrus.
 
 	}
 
+}
+
+// SendDeployment sends intel about a Deployment to the server
+func SentDeployments(
+	client *kubernetes.Clientset,
+	namespace string,
+	log *logrus.Entry,
+	cfg string,
+	apiServer string,
+	tokenString string) {
+	log.Println("sending........")
+	deploymentClient := client.AppsV1().Deployments(namespace)
+	list, err := deploymentClient.List(metav1.ListOptions{})
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	for _, d := range list.Items {
+		s := shared.Stack{}
+		//log.Printf("%s/%s (replicas: %d)", namespace, name, replicas)
+		for _, c := range d.Spec.Template.Spec.Containers {
+			log.Printf("container name: %s, image: %v", c.Name, c.Image)
+			ContainerData := shared.Containers{
+				Name: c.Name,
+				Image: c.Image,
+			}
+			s.ContainerList = append(s.ContainerList, ContainerData)
+
+
+		}
+
+		s = shared.Stack{
+			Agent: "somep-agent-todo",
+			Name: d.Name,
+			Kind: d.Kind,
+			Lane: "pretend-lane-todo",
+			Namespace: namespace,
+			Replicas: shared.Replicas{
+				Available: d.Status.AvailableReplicas,
+				Ready: d.Status.ReadyReplicas,
+				Updated: d.Status.ReadyReplicas,
+				//Desired: d.Spec.Replicas,
+			},
+			ContainerList: s.ContainerList,
+
+		}
+		fmt.Println(s)
+		PostStack(s, apiServer, tokenString, log)
+
+	}
+
+}
+
+
+func PostStack(stack shared.Stack, host string, token string, log *logrus.Entry){
+	//var url = host + "/stacks"
+	var url = "https://httpbin.org/post"
+	b := new(bytes.Buffer)
+	json.NewEncoder(b).Encode(stack)
+
+	req, err := http.NewRequest("POST", url, b)
+	req.Header.Add("Authorization", "Bearer " + token)
+	req.Header.Add("Accept", "application/json")
+
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Println("Error on response.\n[ERROR] -", err)
+	}
+	//body, _ := ioutil.ReadAll(resp.Body)
+	io.Copy(os.Stdout, res.Body)
+	//log.Println(string([]byte(body)))
 }

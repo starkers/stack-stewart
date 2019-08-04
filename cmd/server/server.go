@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
+	//"io/ioutil"
 	"net/http"
 	"time"
 
@@ -186,6 +188,7 @@ func PostStack(db *buntdb.DB) echo.HandlerFunc {
 		input := new(shared.Stack)
 		if err = c.Bind(input); err != nil {
 			// if binding to the struct fails
+			log.Print(input)
 			return c.String(http.StatusBadRequest, "error binding input data")
 		}
 		if err = c.Validate(input); err != nil {

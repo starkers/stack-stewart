@@ -32,6 +32,12 @@ var (
 		Short('v').String()
 	// filter namespaces for this
 	namespaceFilter = "fudge=yes"
+	cfgApiServer = kingpin.Flag(
+		"api-server", "Url of the api server.. eg 'https://api.example.com:3443'").
+		Default("http://localhost:8080").
+		Envar("API_SERVER").
+		Short('a').String()
+
 )
 
 func main() {
@@ -59,19 +65,19 @@ func main() {
 	// determines the namespace (string).. either from pod ENV vars or $NAMESPACE
 	// falls back on "default" if unable to determine.
 	namespace := GetMyNamespace()
-	log.Infof("detected namespace: %s", namespace)
+	log.Debugf("detected namespace: %s", namespace)
 
-	// // creates a UUID (in a k8s secret) if not already there
-	// err := SecretKeyBootstrap(cs, namespace, *cfgAgentSecretName, "token", log)
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
+	// creates a UUID (in a k8s secret) if not already there
+	err := SecretKeyBootstrap(cs, namespace, *cfgAgentSecretName, "token", log)
+	if err != nil {
+		panic(err.Error())
+	}
 
-	// secretTokenString, err := GetSecretKeyData(cs, namespace, *cfgAgentSecretName, "token", log)
-	// if err != nil {
-	// 	panic(err.Error())
-	// }
-	// log.Infof("secretToken: %s", secretTokenString)
+	secretTokenString, err := GetSecretKeyData(cs, namespace, *cfgAgentSecretName, "token", log)
+	if err != nil {
+		panic(err.Error())
+	}
+	log.Infof("secretToken: %s", secretTokenString)
 
 	// we will only look for deployments inside a namespace matching these labels
 	listOpts := metav1.ListOptions{LabelSelector: namespaceFilter}
@@ -89,9 +95,15 @@ func main() {
 			for _, i := range list.Items {
 				// convert the namespace Name into a string
 				namespaceString := fmt.Sprintf(i.Name)
-				log.Infof("searching namespace: %s", namespaceString)
-				// namespaceString := i.Name.String()
-				GetDeployments(cs, namespaceString, log)
+				log.Debugf("processing namespace: %s", namespaceString)
+				SentDeployments(
+					cs,
+					namespaceString,
+					log,
+					*cfgApiServer,
+					*cfgApiServer,
+					secretTokenString,
+					)
 			}
 		}
 		time.Sleep(30 * time.Second)
