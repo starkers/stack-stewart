@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/starkers/stack-stewart/shared"
@@ -22,7 +24,6 @@ func main() {
 
 	total := len(data.Stacks)
 	log.Printf("found %d samples to send\n", len(data.Stacks))
-
 	for {
 		for i := 0; i < len(data.Stacks); i++ {
 			log.Printf(
@@ -36,31 +37,18 @@ func main() {
 			)
 
 			data := data.Stacks[i]
-			b := stack2JsonEncodedBytes(data)
-			//url := "http://localhost:8080/stacks"
-			url := "https://httpbin.org/post"
-			token := "48d3cdba-f530-4c67-92d0-0fe99aa53525"
-			req, err := http.NewRequest("POST", url, b)
-			req.Header.Add("Authorization", "Bearer "+token)
-			req.Header.Add("Accept", "application/json")
-			client := &http.Client{}
-			res, err := client.Do(req)
+			b := new(bytes.Buffer)
+			json.NewEncoder(b).Encode(data)
+			url := "http://localhost:8080/stacks"
+			// url := "https://httpbin.org/post"
+			res, err := http.Post(url, "application/json; charset=utf-8", b)
 			if err != nil {
-				log.Println("Error on response.\n[ERROR] -", err)
+				log.Printf("%v\n", err)
 			}
-			fmt.Printf("%d\n%s\n%s\n", res.StatusCode, res.Header, &res.Body)
-			bd, _ := ioutil.ReadAll(res.Body)
-			fmt.Println(string(bd))
-
-			fmt.Printf("\n\n\n\n\n\n")
+			io.Copy(os.Stdout, res.Body)
+			fmt.Printf("\n")
 		}
 		fmt.Printf("sleeping")
 		time.Sleep(time.Second * 5)
 	}
-}
-
-func stack2JsonEncodedBytes(s shared.Stack) *bytes.Buffer {
-	b := new(bytes.Buffer)
-	json.NewEncoder(b).Encode(s)
-	return b
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
 	//"io/ioutil"
 	"net/http"
 	"time"
@@ -68,7 +69,7 @@ func main() {
 	// recover on errors
 	e.Use(middleware.Recover())
 
-	requireToken := InitMiddlewareTokenValidator(config)
+	// requireToken := InitMiddlewareTokenValidator(config)
 
 	e.Validator = &CustomValidator{validator: validator.New()}
 
@@ -77,7 +78,8 @@ func main() {
 	e.GET("/stacks", GetStacks(db))
 	//e.Static("/", "public")
 
-	e.POST("/stacks", PostStack(db), requireToken)
+	// e.POST("/stacks", PostStack(db), requireToken)
+	e.POST("/stacks", PostStack(db))
 
 	e.Logger.Info(e.Start(":8080"))
 }
