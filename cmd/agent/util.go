@@ -245,7 +245,6 @@ func PostStack(
 		log.Println(err)
 	}
 
-	f, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
 	}
@@ -253,7 +252,5 @@ func PostStack(
 	if err != nil {
 		log.Fatal(err)
 	}
-	//fmt.Println(dataBytes.String())
-	//fmt.Println(string(f))
 	return err
 }

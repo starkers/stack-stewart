@@ -1,5 +1,8 @@
 .DEFAULT_GOAL := help
 
+
+APP     := starkers/stack-stewart
+
 GO111MODULES = on
 
 # make build will create these files
@@ -33,3 +36,32 @@ clean: ## Remove previous builds
 help: ## Display this help screen
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+
+##########
+
+# ensure you create an initial commit on your your git.. `git tag 0.0.1 ; git push origin 0.0.1`
+export TAG     := $(shell git describe --tags)
+export IMG     := "$(APP):$(TAG)"
+
+# DOCKER TASKS
+# Build the container
+docker_build: ## Build the container
+	docker build -t $(IMG) .
+
+publish-all: login publish-version publish-latest
+
+publish-latest: tag-latest login ## Publish the `latest` taged container to ECR
+	@echo 'publish latest to $(DOCKER_REPO)'
+	docker push $(APP):latest
+
+publish-version: login ## Publish the `{version}` taged container to ECR
+	@echo 'publish $(TAG)'
+	docker push $(APP):$(TAG)
+
+tag-latest: ## Generate container `{version}` tag
+	@echo 'create tag latest'
+	docker tag $(APP):$(TAG) $(APP):latest
+
+# log into dockerhub
+login:
+	docker login -u $(DOCKER_USER) -p $(DOCKER_PASS)
