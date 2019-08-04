@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 
@@ -179,17 +178,17 @@ func SentDeployments(
 	log *logrus.Entry,
 	tokenString string,
 	apiServer string,
-	) {
+) {
 	log.Println("sending........")
 	deploymentClient := client.AppsV1().Deployments(namespace)
 	list, err := deploymentClient.List(metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err.Error())
+		return
 	}
 
 	for _, d := range list.Items {
 		s := shared.Stack{}
-		//log.Printf("%s/%s (replicas: %d)", namespace, name, replicas)
 		for _, c := range d.Spec.Template.Spec.Containers {
 			log.Printf("container name: %s, image: %v", c.Name, c.Image)
 			ContainerData := shared.Containers{
@@ -199,11 +198,11 @@ func SentDeployments(
 			s.ContainerList = append(s.ContainerList, ContainerData)
 
 		}
-
+		fmt.Printf("======   %+v ======", d)
 		s = shared.Stack{
 			Agent:     "somep-agent-todo",
 			Name:      d.Name,
-			Kind:      d.Kind,
+			Kind:      "deployment",
 			Lane:      "pretend-lane-todo",
 			Namespace: namespace,
 			Replicas: shared.Replicas{
@@ -214,35 +213,47 @@ func SentDeployments(
 			},
 			ContainerList: s.ContainerList,
 		}
-		log.Println(s)
-		PostStack(s,  tokenString, apiServer, log)
-
+		err := PostStack(apiServer, s, tokenString, apiServer, log)
+		if err != nil {
+			return
+		}
 	}
 
 }
 
 func PostStack(
-	stack shared.Stack,
+	url string,
+	data shared.Stack,
 	token string,
 	apiServer string,
 	log *logrus.Entry,
-	) {
-	//var url = fmt.Sprintf("%s/%s", CfgAPIServer, "/stacks")
-	var url = apiServer
-	//var url = "https://httpbin.org/post"
-	b := new(bytes.Buffer)
-	json.NewEncoder(b).Encode(stack)
-
-	req, err := http.NewRequest("POST", url, b)
-	req.Header.Add("Authorization", "Bearer "+token)
-	req.Header.Add("Accept", "application/json")
-
+) error {
 	client := &http.Client{}
-	res, err := client.Do(req)
+	dataBytes := new(bytes.Buffer)
+	_ = json.NewEncoder(dataBytes).Encode(data)
+
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s", url), dataBytes)
+
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	// add authorization header to the req
+	req.Header.Add("Authorization", "Bearer "+token)
 	if err != nil {
-		log.Println("Error on response.\n[ERROR] -", err)
+		log.Println(err)
 	}
-	//body, _ := ioutil.ReadAll(resp.Body)
-	io.Copy(os.Stdout, res.Body)
-	//log.Println(string([]byte(body)))
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+	}
+
+	f, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	err = resp.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	//fmt.Println(dataBytes.String())
+	//fmt.Println(string(f))
+	return err
 }

@@ -50,12 +50,12 @@ func main() {
 func PostStack(url string, data shared.Stack, token string) error {
 	client := &http.Client{}
 	dataBytes := new(bytes.Buffer)
-	json.NewEncoder(dataBytes).Encode(data)
+	err := json.NewEncoder(dataBytes).Encode(data)
+	if err != nil {
+		return err
+	}
 
-	req, err := http.NewRequest(
-		"POST",
-		fmt.Sprintf("%s", url),
-		dataBytes)
+	req, err := http.NewRequest("POST",fmt.Sprintf("%s", url), dataBytes)
 
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	// add authorization header to the req
@@ -72,7 +72,7 @@ func PostStack(url string, data shared.Stack, token string) error {
 	if err != nil {
 		log.Println(err)
 	}
-	resp.Body.Close()
+	err = resp.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
