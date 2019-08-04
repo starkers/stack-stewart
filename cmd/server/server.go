@@ -47,7 +47,7 @@ func main() {
 	config := LoadConfig("config.yaml")
 
 	if len(config.Agents) == 0 {
-		log.Panic("you have no agents configured.. see config.yaml")
+		log.Fatal("you have no agents configured.. see config.yaml")
 	}
 
 	for _, k := range config.Agents {
@@ -112,7 +112,7 @@ func GetStacks(db *buntdb.DB) echo.HandlerFunc {
 		for _, v := range raw {
 			stack, err := JSONStringToStack(v)
 			if err != nil {
-				log.Panic(err)
+				log.Fatal(err)
 			}
 			trace := GetTraceName(
 				stack.Agent,
@@ -143,7 +143,7 @@ func DbGetOrdered(db *buntdb.DB, sortKey string) ([]string, error) {
 			return true
 		})
 		if err != nil {
-			log.Panic(err)
+			log.Fatal(err)
 		}
 		return nil
 	})
@@ -155,7 +155,7 @@ func StackToJSONString(s *shared.Stack) string {
 	j, err := json.Marshal(s)
 	JSONString := string(j)
 	if err != nil {
-		log.Panic(err)
+		log.Fatal(err)
 	}
 	return JSONString
 }
@@ -166,7 +166,7 @@ func dbUpdateWithTTL(db *buntdb.DB, key string, val string) error {
 		opts := &buntdb.SetOptions{Expires: true, TTL: ttl}
 		_, _, err := tx.Set(key, val, opts)
 		if err != nil {
-			log.Panic(err)
+			log.Fatal(err)
 		}
 		return nil
 	})

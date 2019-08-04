@@ -233,13 +233,13 @@ func PostStack(
 	_ = json.NewEncoder(dataBytes).Encode(data)
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s", url), dataBytes)
+	if err != nil {
+		return err
+	}
 
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	// add authorization header to the req
 	req.Header.Add("Authorization", "Bearer "+token)
-	if err != nil {
-		log.Println(err)
-	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
