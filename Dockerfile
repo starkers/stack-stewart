@@ -13,7 +13,9 @@ FROM node:lts-alpine AS build-front
 WORKDIR /build
 COPY . .
 # will create a "dist" directory under /build/frontend
-RUN cd frontend ; npm run build
+RUN cd frontend ; \
+      npm install -g @vue/cli ; \
+      npm run build
 
 
 ####
