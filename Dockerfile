@@ -14,6 +14,7 @@ WORKDIR /build
 COPY . .
 # will create a "dist" directory under /build/frontend
 RUN cd frontend ; \
+      npm install ; \
       npm install -g @vue/cli ; \
       npm run build
 
