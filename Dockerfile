@@ -1,13 +1,3 @@
-# backend
-FROM golang:1.12-buster AS build-back
-WORKDIR /build
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -i -v -o agent  github.com/starkers/stack-stewart/cmd/agent
-RUN CGO_ENABLED=0 GOOS=linux go build -i -v -o server github.com/starkers/stack-stewart/cmd/server
-
-RUN ls -lash agent server ; pwd
-
-
 # frontend
 FROM node:lts-alpine AS build-front
 WORKDIR /build
@@ -16,7 +6,18 @@ COPY . .
 RUN cd frontend ; \
       npm install ; \
       npm install -g @vue/cli ; \
-      npm run build
+      yarn lint ; \
+      yarn build
+RUN find frontend/dist
+
+# backend
+FROM golang:1.12-buster AS build-back
+WORKDIR /build
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -i github.com/starkers/stack-stewart/cmd/agent
+RUN CGO_ENABLED=0 GOOS=linux go build -i github.com/starkers/stack-stewart/cmd/server
+
+RUN ls -lash agent server ; pwd
 
 
 ####
@@ -28,6 +29,8 @@ USER app
 
 COPY --from=build-back  /build/agent .
 COPY --from=build-back  /build/server .
-COPY --from=build-front /build/frontend/dist public
+COPY --from=build-back  /build/cmd/server/config.yaml .
+COPY --from=build-front /build/frontend/dist dist
+RUN find /app -type f
 
 # ENTRYPOINT ["/sbin/tini", "--"]

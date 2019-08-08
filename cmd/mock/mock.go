@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/labstack/gommon/log"
+	log "github.com/sirupsen/logrus"
 	"github.com/starkers/stack-stewart/api"
 	"github.com/starkers/stack-stewart/shared"
 )
@@ -25,7 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tick := time.Tick(5 * time.Second)
+	tick := time.Tick(3 * time.Second)
 
 	total := len(data.Stacks)
 	log.Printf("found %d samples to send\n", len(data.Stacks))

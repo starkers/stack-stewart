@@ -5,9 +5,7 @@ import (
 	"time"
 
 	"gopkg.in/alecthomas/kingpin.v2"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"os"
 	"path/filepath"
 
@@ -16,28 +14,36 @@ import (
 
 var (
 	CfgKubeConfig = kingpin.Flag(
-		"kubeconfig", "Full path to your KUBECONFIG file").
+		"kubeconfig", "(optional) full path to your KUBECONFIG file").
 		Default("nope").
 		Envar("KUBECONFIG").
 		Short('k').String()
 	CfgAgentSecretName = kingpin.Flag(
-		"secret-name", "secret for agent").
-		Default("fudge").
+		"secret-name", "(optional) secret for agent").
+		Default("stack-stewart").
 		Envar("SECRET_NAME").
-		Short('s').String()
+		String()
 	CfgLogLevel = kingpin.Flag(
 		"log-level", "Debug, Info").
 		Default("Info").
 		Envar("LOG_LEVEL").
 		Short('v').String()
-	// filter namespaces for this
-	NamespaceFilter = "fudge=yes"
-	// CfgAPIServer ..
-	CfgAPIServer = kingpin.Flag(
-		"api-server", "Url of the api server.. eg 'https://api.example.com:3443'").
-		Default("http://localhost:8080/stacks").
-		Envar("API_SERVER").
+	// NamespaceLaneKey tells the agent what the "lane" is
+	NamespaceLaneKey = "fudge.io/lane"
+
+	CfgAgentName = kingpin.Flag(
+		"agent-nickname", "nickname of the agent.. I recommend a short human-readable name for the cluster").
+		Default("unconfigured-agent-name").
+		Envar("AGENT_NAME").
 		Short('a').String()
+
+
+	// CfgServerAddress ..
+	CfgServerAddress = kingpin.Flag(
+		"api-server", "Url of the central API server.. eg 'https://server.example.com/stacks'").
+		Default("http://localhost:8080/stacks").
+		Envar("SERVER_ADDRESS").
+		Short('s').String()
 )
 
 func main() {
@@ -45,9 +51,12 @@ func main() {
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
-	// start up log.. TODO: param for log level/json-text?
-	log.SetFormatter(&log.JSONFormatter{})
-	log.SetOutput(os.Stdout)
+	// start up log.. TODO: param for json/text?
+	// log.SetFormatter(&log.JSONFormatter{})
+	log.SetFormatter(&log.TextFormatter{
+		//DisableColors: true,
+		FullTimestamp: true,
+	})
 	if *CfgLogLevel == "Debug" {
 		log.SetLevel(log.DebugLevel)
 	} else {
@@ -75,32 +84,42 @@ func main() {
 	}
 	log.Infof("secretToken: %s", secretTokenString)
 
-	// we will only look for deployments inside a namespace matching these labels
-	listOpts := metav1.ListOptions{LabelSelector: NamespaceFilter}
-
+	tick := time.Tick(time.Second * 5)
 	for {
-		// make a list of namespaces to parse for deployments
-		list, err := cs.CoreV1().Namespaces().List(listOpts)
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-		if len(list.Items) == 0 {
-			log.Warnf("matched 0 namespaces with %s", NamespaceFilter)
-		} else {
-			// loop over namespaces
-			for _, i := range list.Items {
-				// convert the namespace Name into a string
-				namespaceString := fmt.Sprintf(i.Name)
-				log.Debugf("processing namespace: %s", namespaceString)
-				SendDeployments(
-					cs,
-					namespaceString,
-					secretTokenString,
-					*CfgAPIServer,
-				)
+		select {
+		case <-tick:
+			list, err := cs.CoreV1().Namespaces().List(metav1.ListOptions{})
+			if err != nil {
+				log.Fatal(err)
 			}
+			if len(list.Items) == 0 {
+				log.Warn("ohh no.. we found 0 namespaces?")
+			}
+			log.Debugf("found %d namespaces", len(list.Items))
+
+			// Loop over all namespaces
+			for _, ns := range list.Items {
+
+				namespaceString := fmt.Sprintf(ns.Name)
+				// Match namespaces with the lane label
+				matched, lane := GetValueFromLabelKey(ns.Labels, NamespaceLaneKey)
+				if matched {
+					log.Debugf("processing namespace: %s", namespaceString)
+					SendDeployments(
+						cs,
+						namespaceString,
+						lane,
+						secretTokenString,
+						*CfgServerAddress,
+						*CfgAgentName,
+					)
+				}
+
+			}
+
 		}
-		time.Sleep(30 * time.Second)
+
 	}
 
 }
+

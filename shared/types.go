@@ -12,8 +12,8 @@ type Containers struct {
 type Replicas struct {
 	Available int32 `json:"available" validate:"required"`
 	//Desired   int32 `json:"desired" validate:"required"`
-	Ready     int32 `json:"ready" validate:"required"`
-	Updated   int32 `json:"updated" validate:"required"`
+	Ready   int32 `json:"ready" validate:"required"`
+	Updated int32 `json:"updated" validate:"required"`
 }
 
 // Stack ..
@@ -25,6 +25,7 @@ type Stack struct {
 	Name          string       `json:"name" validate:"required"`
 	Namespace     string       `json:"namespace" validate:"required"`
 	Replicas      Replicas     `json:"replicas"`
+	Trace         string       `json:"trace"` //not required.. only the server uses this
 }
 
 // StackList  list of stacks
