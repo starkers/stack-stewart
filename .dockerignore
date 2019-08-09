@@ -2,3 +2,4 @@
 .idea
 Dockerfile
 frontend/node_modules
+frontend/dist

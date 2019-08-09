@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"gopkg.in/alecthomas/kingpin.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/alecthomas/kingpin.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -29,14 +30,13 @@ var (
 		Envar("LOG_LEVEL").
 		Short('v').String()
 	// NamespaceLaneKey tells the agent what the "lane" is
-	NamespaceLaneKey = "fudge.io/lane"
+	NamespaceLaneKey = "lane"
 
 	CfgAgentName = kingpin.Flag(
 		"agent-nickname", "nickname of the agent.. I recommend a short human-readable name for the cluster").
 		Default("unconfigured-agent-name").
 		Envar("AGENT_NAME").
 		Short('a').String()
-
 
 	// CfgServerAddress ..
 	CfgServerAddress = kingpin.Flag(
@@ -122,4 +122,3 @@ func main() {
 	}
 
 }
-

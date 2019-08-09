@@ -14,6 +14,7 @@ RUN find frontend/dist
 FROM golang:1.12-buster AS build-back
 WORKDIR /build
 COPY . .
+COPY --from=build-front /build/frontend/dist frontend/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -i github.com/starkers/stack-stewart/cmd/agent
 RUN CGO_ENABLED=0 GOOS=linux go build -i github.com/starkers/stack-stewart/cmd/server
 
@@ -30,7 +31,6 @@ USER app
 COPY --from=build-back  /build/agent .
 COPY --from=build-back  /build/server .
 COPY --from=build-back  /build/cmd/server/config.yaml .
-COPY --from=build-front /build/frontend/dist dist
 RUN find /app -type f
 
 # ENTRYPOINT ["/sbin/tini", "--"]

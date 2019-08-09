@@ -1,27 +1,21 @@
 package main
 
 import (
-	//"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strings"
-
-	//"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"github.com/starkers/stack-stewart/shared"
-
 	echoprometheus "github.com/0neSe7en/echo-prometheus"
+	rice "github.com/GeertJohan/go.rice"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-
-	// "github.com/labstack/gommon/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"github.com/starkers/stack-stewart/shared"
 	"github.com/tidwall/buntdb"
 	"gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
@@ -63,6 +57,9 @@ func main() {
 
 	e := echo.New()
 
+	// Where to find static assets (relative to server.go)
+	assetHandler := http.FileServer(rice.MustFindBox("../../frontend/dist").HTTPBox())
+
 	e.HideBanner = true
 	e.HidePort = true
 	e.Debug = false
@@ -77,12 +74,11 @@ func main() {
 
 	e.Validator = &CustomValidator{validator: validator.New()}
 
-	e.Static("/", "dist")
-
+	// servers the static files
+	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assetHandler)))
 	e.GET("/healthz", Healthz())
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	e.GET("/stacks", GetStacks(db))
-	//e.Static("/", "public")
 
 	e.POST("/stacks", PostStack(db), requireToken)
 
