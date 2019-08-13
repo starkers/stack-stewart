@@ -6,6 +6,7 @@ language: bash
 services: docker
 
 script:
-  - make docker_build || travis_terminate 1
-  - if [ "${TRAVIS_PULL_REQUEST}" == "true" ]; then make publish-version  ; fi || travis_terminate 1
+  - if [ "${TRAVIS_PULL_REQUEST}" == "true" ]; then travis_terminate 1; fi
+  - make docker_build     || travis_terminate 1
+  - make publish-version  || travis_terminate 1
   - if [ "${TRAVIS_BRANCH}" == "master" -a "${TRAVIS_PULL_REQUEST}" == "false" ]; then make publish-all ; fi || travis_terminate 1

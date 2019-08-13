@@ -1,0 +1,89 @@
+# Default values for server.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: starkers/stack-stewart
+  tag: latest
+pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+
+  # EG:
+  # TODO: annotations must be empty on default.. configuration must be added only when required
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+  path: /
+  hosts:
+    - server.example.com
+  tls:
+   - secretName: acme-server.example.com
+     hosts:
+       - server.example.com
+
+
+# set config.yaml (will be given to the server) from here..
+config:
+  # List of agents that are allowed to communicate with tokenSecured endpoints
+  agents:
+      # insert the token that it generated
+    - token: 0d6f7019-da6d-4d7f-a98e-7adc7635c3b3
+      # give it a name.. you'll need this later
+      name: nonprod
+
+  # ordering probably matters to you... set that here
+  # Notice the example includes two "demo" lanes..
+  # This is for the make-believe situation of having
+  # similar "environments" but wanting to group them
+  # differently
+  lane_order:
+
+    - id: dev
+      agents:
+        - nonprod
+
+    - id: demo
+      agents:
+        - nonprod
+
+    - id: staging
+      agents:
+        - nonprod
+
+    - id: demo
+      agents:
+        - prod
+
+    - id: prod
+      agents:
+        - prod
+
+resources:
+  limits:
+   cpu: 200m
+   memory: 128Mi
+  requests:
+   cpu: 200m
+   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# enable the ServiceMonitor?
+#  - https://github.com/coreos/prometheus-operator/blob/master/Documentation/user-serverdes/getting-started.md#include-servicemonitors
+prometheus:
+  enabled: false

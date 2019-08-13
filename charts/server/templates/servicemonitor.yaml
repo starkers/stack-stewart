@@ -1,0 +1,22 @@
+{{- if .Values.prometheus.enabled -}}
+{{- $fullName := include "server.fullname" . -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app: {{ include "server.name" . }}
+    chart: {{ include "server.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "server.name" . }}
+      chart: {{ include "server.chart" . }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+  endpoints:
+# TODO.. dedicated prometheus port
+  - port: http
+{{- end }}

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+    app: {{ include "server.name" . }}
+    chart: {{ include "server.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+
+# {{- if .Values.prometheus.enabled }}
+#     - port: 9180
+#       name: prometheus
+#       targetPort: prometheus
+# {{- end }}
+
+  selector:
+    app: {{ include "server.name" . }}
+    release: {{ .Release.Name }}

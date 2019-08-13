@@ -1,0 +1,37 @@
+# Default values for flux-chatbot.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: starkers/stack-stewart
+  tag: latest
+  pullPolicy: IfNotPresent
+
+rbac:
+  enabled: true
+
+nameOverride: ""
+fullnameOverride: ""
+
+# URL of the stack stewart "server"
+server_address: "https://server.myurl.com/stacks"
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits:
+   cpu: 100m
+   memory: 128Mi
+  requests:
+   cpu: 100m
+   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
