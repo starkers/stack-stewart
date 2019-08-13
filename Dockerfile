@@ -14,23 +14,20 @@ RUN find frontend/dist
 FROM golang:1.12-buster AS build-back
 WORKDIR /build
 COPY . .
-COPY --from=build-front /build/frontend/dist frontend/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -i github.com/starkers/stack-stewart/cmd/agent
 RUN CGO_ENABLED=0 GOOS=linux go build -i github.com/starkers/stack-stewart/cmd/server
 
 RUN ls -lash agent server ; pwd
-
 
 ####
 FROM alpine
 # RUN apk add --no-cache tini
 RUN addgroup -g 1000 app && adduser -D -G app -u 1000 -h /app app
 WORKDIR /app
-USER app
 
 COPY --from=build-back  /build/agent .
 COPY --from=build-back  /build/server .
 COPY --from=build-back  /build/cmd/server/config.yaml .
-RUN find /app -type f
-
-# ENTRYPOINT ["/sbin/tini", "--"]
+COPY --from=build-front /build/frontend/dist public
+RUN chown -Rv app:app .
+USER app

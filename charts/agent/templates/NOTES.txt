@@ -1,0 +1,7 @@
+1. Get the agent token (auto generated) by running these commands:
+
+
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app={{ include "agent.name" . }},release={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+
+
+  kubectl log $POD_NAME

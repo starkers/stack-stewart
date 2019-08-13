@@ -1,0 +1,14 @@
+{{- if not .Values.secrets }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+    app: {{ include "server.name" . }}
+    chart: {{ include "server.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  config.yaml: |
+{{ toYaml .Values.config | indent 4 }}
+{{- end }}
