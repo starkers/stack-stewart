@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/starkers/stack-stewart/shared"
 )
 
@@ -67,16 +68,20 @@ func PostStack(
 	// add authorization header to the req
 	req.Header.Add("Authorization", "Bearer "+token)
 	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-	}
 
 	if err != nil {
-		log.Println(err)
-	}
-	err = resp.Body.Close()
-	if err != nil {
-		log.Fatal(err)
+		log.Error("serious issue posting.. see api.PostStack()")
+		log.Error(err)
+	} else {
+		if resp.StatusCode == 401 {
+			log.Warnf("Token %s denied Post to %s ...did you whitelist the token on the server?", token, url)
+		}
+		log.Debugf("posted to %s and got statusCode: %d", url, resp.StatusCode)
+		// only try to close if there is something to Close()
+		err = resp.Body.Close()
+		if err != nil {
+			log.Error(err)
+		}
 	}
 	return err
 }

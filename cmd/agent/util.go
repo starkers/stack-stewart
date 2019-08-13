@@ -136,30 +136,37 @@ func GetSecretKeyData(client *kubernetes.Clientset, namespace string, secretName
 	return valueString, err
 }
 
-// GetDeployments gets some stuff from deployments
-func GetDeployments(client *kubernetes.Clientset, namespace string) {
-	deploymentClient := client.AppsV1().Deployments(namespace)
-	list, err := deploymentClient.List(metav1.ListOptions{})
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	for _, d := range list.Items {
-		// fmt.Printf(" * %s (%d replicas)\n", d.Name, *d.Spec.Replicas)
-		name := d.Name
-		replicas := *d.Spec.Replicas
-		log.Printf("%s/%s (replicas: %d)", namespace, name, replicas)
-		for _, c := range d.Spec.Template.Spec.Containers {
-			log.Printf("container name: %s, image: %v", c.Name, c.Image)
-		}
-
-	}
-
-}
+//// GetDeployments gets some stuff from deployments
+//func GetDeployments(client *kubernetes.Clientset, namespace string) {
+//	deploymentClient := client.AppsV1().Deployments(namespace)
+//	list, err := deploymentClient.List(metav1.ListOptions{})
+//	if err != nil {
+//		log.Fatal(err.Error())
+//	}
+//
+//	for _, d := range list.Items {
+//		// fmt.Printf(" * %s (%d replicas)\n", d.Name, *d.Spec.Replicas)
+//		name := d.Name
+//		replicas := *d.Spec.Replicas
+//		log.Printf("%s/%s (replicas: %d)", namespace, name, replicas)
+//		for _, c := range d.Spec.Template.Spec.Containers {
+//			log.Printf("container name: %s, image: %v", c.Name, c.Image)
+//		}
+//
+//	}
+//
+//}
 
 // SendDeployments sends intel about a Deployment to the PostStack function
-func SendDeployments(client *kubernetes.Clientset, namespace string, tokenString string, apiServer string) {
-	log.Println("sending........")
+func SendDeployments(
+	client *kubernetes.Clientset,
+	namespace,
+	lane,
+	tokenString,
+	apiServer string,
+	CfgClusterNickname string,
+) {
+	log.Debugf("searching ns/%s for deployments", namespace)
 	deploymentClient := client.AppsV1().Deployments(namespace)
 	list, err := deploymentClient.List(metav1.ListOptions{})
 	if err != nil {
@@ -167,22 +174,26 @@ func SendDeployments(client *kubernetes.Clientset, namespace string, tokenString
 		return
 	}
 
+	log.Debugf("found %d deployments in namespace: %s", len(list.Items), namespace)
+
+	// Loop over deployments
 	for _, d := range list.Items {
 		s := shared.Stack{}
+		// Loop over the containers in the deployment
 		for _, c := range d.Spec.Template.Spec.Containers {
-			log.Printf("container name: %s, image: %v", c.Name, c.Image)
+			log.Debugf("ns/%s deployment/%s found container/image: %s/%v",
+				namespace, d.Name, c.Name, c.Image)
 			ContainerData := shared.Containers{
 				Name:  c.Name,
 				Image: c.Image,
 			}
 			s.ContainerList = append(s.ContainerList, ContainerData)
-
 		}
 		s = shared.Stack{
-			Agent:     "somep-agent-todo",
+			Agent:     CfgClusterNickname,
 			Name:      d.Name,
 			Kind:      "deployment",
-			Lane:      "pretend-lane-todo",
+			Lane:      lane,
 			Namespace: namespace,
 			Replicas: shared.Replicas{
 				Available: d.Status.AvailableReplicas,
@@ -192,10 +203,29 @@ func SendDeployments(client *kubernetes.Clientset, namespace string, tokenString
 			},
 			ContainerList: s.ContainerList,
 		}
+		log.Debug(s)
 		err := api.PostStack(apiServer, s, tokenString)
 		if err != nil {
+			// TODO: metrics!
+			log.Error(err)
 			return
 		}
 	}
+	countDeploys := len(list.Items)
+	log.Infof("lane/%s, ns/%s sent %d deployments", lane, namespace, countDeploys)
 
+}
+
+
+// GetValueFromLabelKey returns bool if if matched and the value as a string from a set of Labels
+func GetValueFromLabelKey(inputList map[string]string, NamespaceLaneKey string) (bool, string) {
+	log.Debugf("searching for %s in a namespace\n", NamespaceLaneKey)
+	for k, v := range inputList {
+		//log.Debugf("searching :::: [%s ---- %s ]\n", k, v)
+		if k == NamespaceLaneKey {
+			log.Debugf("ns/%s matched a label value: %v\n", v)
+			return true, v
+		}
+	}
+	return false, "unknown"
 }

@@ -1,21 +1,27 @@
 package main
 
 import (
+	//"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"strings"
+
+	//"io/ioutil"
+	"net/http"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/starkers/stack-stewart/shared"
+
 	echoprometheus "github.com/0neSe7en/echo-prometheus"
-	rice "github.com/GeertJohan/go.rice"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	// "github.com/labstack/gommon/log"
 	log "github.com/sirupsen/logrus"
-	"github.com/starkers/stack-stewart/shared"
 	"github.com/tidwall/buntdb"
 	"gopkg.in/go-playground/validator.v9"
 	"gopkg.in/yaml.v2"
@@ -54,11 +60,9 @@ func main() {
 
 	db, _ := buntdb.Open(":memory:")
 	db.CreateIndex("name", "*", buntdb.IndexJSON("name"))
+	db.CreateIndex("lane", "*", buntdb.IndexJSON("lane"))
 
 	e := echo.New()
-
-	// Where to find static assets (relative to server.go)
-	assetHandler := http.FileServer(rice.MustFindBox("../../frontend/dist").HTTPBox())
 
 	e.HideBanner = true
 	e.HidePort = true
@@ -74,11 +78,13 @@ func main() {
 
 	e.Validator = &CustomValidator{validator: validator.New()}
 
-	// servers the static files
-	e.GET("/*", echo.WrapHandler(http.StripPrefix("/", assetHandler)))
+	e.Static("/", "dist")
+
 	e.GET("/healthz", Healthz())
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
-	e.GET("/stacks", GetStacks(db))
+	e.GET("/stacks", GetStacksByName(db))
+	// e.GET("/stacks", GetStacksByLane(db))
+	//e.Static("/", "public")
 
 	e.POST("/stacks", PostStack(db), requireToken)
 
@@ -96,47 +102,50 @@ func JSONStringToStack(s string) (shared.Stack, error) {
 	return data, err
 }
 
-// GetStacks where we will retrieve all Stacks
-func GetStacks(db *buntdb.DB) echo.HandlerFunc {
+func stringListToJSONString(input []string) string {
+	data, err := gabs.ParseJSON([]byte(`[]`))
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Debugf("getstacks returned: '%s'", input)
+	for i := -1; i < len(input); i++ {
+		item := input[i]
+		stack, err := JSONStringToStack(item)
+		if err != nil {
+			log.Fatal(err)
+		}
+		trace := GetTraceName(
+			stack.Agent,
+			stack.Namespace,
+			stack.Name,
+			stack.Kind,
+		)
+		stack.Trace = trace
+		traceString := fmt.Sprintf("%s", trace)
+		log.Error(traceString)
+		err = data.ArrayAppend(stack)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return data.String()
+}
+
+// GetStacksByName where we will retrieve all Stacks
+func GetStacksByName(db *buntdb.DB) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
-		log.Debug("GetStacks")
 		raw, err := DbGetOrdered(db, "name")
-		// create an empty gabs JSON array
-		data, err := gabs.ParseJSON([]byte(`[]`))
+		// set the headers for json
 		c.Response().
 			Header().
 			Set(echo.HeaderContentType,
 				echo.MIMEApplicationJSONCharsetUTF8)
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		if len(raw) == 0 {
 			log.Debug("GetStacks for 0 results from DB")
-			return c.String(http.StatusOK, data.String())
-
+			return c.String(http.StatusOK, "[]")
 		}
-
-		log.Debugf("getstacks returned: '%s'", raw)
-		for i := 0; i < len(raw); i++ {
-			string := raw[i]
-			stack, err := JSONStringToStack(string)
-			if err != nil {
-				log.Fatal(err)
-			}
-			trace := GetTraceName(
-				stack.Agent,
-				stack.Namespace,
-				stack.Name,
-				stack.Kind,
-			)
-			stack.Trace = trace
-			traceString := fmt.Sprintf("%s", trace)
-			log.Error(traceString)
-			data.ArrayAppend(stack)
-			data.S("foo").SetIndex("test1", 0)
-		}
-		return c.String(http.StatusOK, data.String())
+		results := stringListToJSONString(raw)
+		return c.String(http.StatusOK, results)
 	}
 }
 
