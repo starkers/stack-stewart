@@ -21,7 +21,8 @@ RUN ls -lash agent server ; pwd
 
 ####
 FROM alpine
-# RUN apk add --no-cache tini
+RUN apk add --no-cache \
+      ca-certificates
 RUN addgroup -g 1000 app && adduser -D -G app -u 1000 -h /app app
 WORKDIR /app
 

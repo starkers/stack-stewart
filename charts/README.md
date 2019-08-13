@@ -8,7 +8,7 @@ helm \
   --install \
   --namespace stewart \
   ${RELEASE_NAME} ./agent \
-  --set server_address="http://fooasdasd.com/stacks
+  --set server_address=http://fooasdasd.com/stacks
 ```
 
 ### server
