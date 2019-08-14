@@ -216,7 +216,6 @@ func SendDeployments(
 
 }
 
-
 // GetValueFromLabelKey returns bool if if matched and the value as a string from a set of Labels
 func GetValueFromLabelKey(inputList map[string]string, NamespaceLaneKey string) (bool, string) {
 	log.Debugf("searching for %s in a namespace\n", NamespaceLaneKey)

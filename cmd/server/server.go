@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"errors"
+
 	echoprometheus "github.com/0neSe7en/echo-prometheus"
 	"github.com/Jeffail/gabs/v2"
 	"github.com/labstack/echo"
@@ -39,24 +41,29 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 
 func main() {
 	log.SetLevel(log.InfoLevel)
-	log.Info("loading config")
 
-	config := LoadConfig("config.yaml")
+	log.Info("loading config.yaml")
+	ServerConfig := LoadConfig("config.yaml")
 
-	if config.LogLevel == "debug" {
+	if ServerConfig.LogLevel == "debug" {
+		log.Info("setting log level to Debug")
 		log.SetLevel(log.DebugLevel)
 	}
 
-	if len(config.Agents) == 0 {
-		log.Fatal("you have no agents configured.. see config.yaml")
+	if len(ServerConfig.Agents) == 0 {
+		log.Fatal("you have no agents configured.. see ServerConfig.yaml")
 	}
 
-	for _, k := range config.Agents {
-		log.Infof("valid agents are: %s, token: %s\n", k.Name, k.Token)
+	for _, k := range ServerConfig.Agents {
+		log.Infof("valid token: %s (%s)\n", k.Token, k.Name)
 	}
 
 	db, _ := buntdb.Open(":memory:")
-	db.CreateIndex("name", "*", buntdb.IndexJSON("name"))
+	err := db.CreateIndex("name", "*", buntdb.IndexJSON("name"))
+	if err != nil {
+		log.Error(err)
+	}
+	//db.CreateIndex("lane", "*", buntdb.IndexJSON("lane"))
 
 	e := echo.New()
 
@@ -70,7 +77,7 @@ func main() {
 	// recover on errors
 	e.Use(middleware.Recover())
 
-	requireToken := InitMiddlewareTokenValidator(config)
+	requireToken := InitMiddlewareTokenValidator(ServerConfig)
 
 	e.Validator = &CustomValidator{validator: validator.New()}
 
@@ -79,8 +86,7 @@ func main() {
 	e.GET("/healthz", Healthz())
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	e.GET("/stacks", GetStacks(db))
-
-	e.POST("/stacks", PostStack(db), requireToken)
+	e.POST("/stacks", PostStack(db, ServerConfig), requireToken)
 
 	e.Logger.Info(e.Start(":8080"))
 }
@@ -120,8 +126,8 @@ func GetStacks(db *buntdb.DB) echo.HandlerFunc {
 
 		log.Debugf("getstacks returned: '%s'", raw)
 		for i := 0; i < len(raw); i++ {
-			string := raw[i]
-			stack, err := JSONStringToStack(string)
+			stringVal := raw[i]
+			stack, err := JSONStringToStack(stringVal)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -135,7 +141,7 @@ func GetStacks(db *buntdb.DB) echo.HandlerFunc {
 			traceString := fmt.Sprintf("%s", trace)
 			log.Debugf("returned data for trace: %s", traceString)
 			err = data.ArrayAppend(stack)
-			if err != nil{
+			if err != nil {
 				log.Error(err)
 			}
 
@@ -208,13 +214,32 @@ func GetTraceName(agent, namespace, name, kind string) string {
 	return trace
 }
 
+func getAgentName(token string, config Config) (string, error) {
+	for _, agent := range config.Agents {
+		if token == agent.Token {
+			return agent.Name, nil
+
+		}
+	}
+	return "no-agent-match", errors.New("no agent found")
+}
+
 // PostStack where we will post a single Stack
-func PostStack(db *buntdb.DB) echo.HandlerFunc {
+func PostStack(db *buntdb.DB, ServerConfig Config) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		c.Response().
 			Header().
 			Set(echo.HeaderContentType,
 				echo.MIMEApplicationJSONCharsetUTF8)
+
+		// parse lets find the token being used (so we can find the agents "name")
+		req := c.Request()
+		headers := req.Header
+		inboundAuthRaw := headers.Get("Authorization")
+		// need to split the field value
+		inboundAuthRawSplit := strings.Split(inboundAuthRaw, " ")
+		// string of the token is the second part
+		tokenString := inboundAuthRawSplit[1]
 
 		input := new(shared.Stack)
 		if err = c.Bind(input); err != nil {
@@ -224,8 +249,17 @@ func PostStack(db *buntdb.DB) echo.HandlerFunc {
 		}
 		if err = c.Validate(input); err != nil {
 			// return the validation failure message as a 400
+			log.Errorf("Error validating input from %s.. : %v", tokenString, err)
 			return c.String(http.StatusBadRequest, fmt.Sprintf("{'error':'%v'}", err))
 		}
+
+		agentName, err := getAgentName(tokenString, ServerConfig)
+		if err != nil {
+			log.Error(err)
+		}
+		log.Debugf("======== %s ======", agentName)
+
+		input.Agent = agentName
 		trace := GetTraceName(
 			input.Agent,
 			input.Namespace,

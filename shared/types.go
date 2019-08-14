@@ -18,7 +18,7 @@ type Replicas struct {
 
 // Stack ..
 type Stack struct {
-	Agent         string       `json:"agent" validate:"required"`
+	Agent         string       `json:"agent"` //not required on the agent, the server will use it however
 	ContainerList []Containers `json:"containers" validate:"required"`
 	Kind          string       `json:"kind" validate:"required"`
 	Lane          string       `json:"lane" validate:"required"`

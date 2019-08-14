@@ -1,13 +1,14 @@
 ---
 
 
-log_level: debug  # info, debug
+log_level: info  # info, debug
 
 # List of agents that are allowed to communicate with tokenSecured endpoints
 agents:
-  - token: 0d6f7019-da6d-4d7f-a98e-7adc7635c3b3
   - name: mock # the name of the agent
     token: 48d3cdba-f530-4c67-92d0-0fe99aa53525  # UUID of the agent will go next to its name
+  - name: example-cluster1
+    token: 2a928668-08ab-49d8-b918-402f9aaee5cd
 
 lanes:
   - name: dev
