@@ -1,7 +1,6 @@
 {
   "stacks": [
     {
-      "agent": "one",
       "containers": [
         {
           "image": "myapp:master-123123",
@@ -14,13 +13,11 @@
       "namespace": "dev",
       "replicas": {
         "available": 1,
-        "desired": 1,
         "ready": 1,
         "updated": 1
       }
     },
     {
-      "agent": "one",
       "containers": [
         {
           "image": "myapp:master-123123",
@@ -37,13 +34,11 @@
       "namespace": "dev",
       "replicas": {
         "available": 1,
-        "desired": 1,
         "ready": 1,
         "updated": 1
       }
     },
     {
-      "agent": "one",
       "containers": [
         {
           "image": "failz:master-123123",
@@ -55,13 +50,11 @@
       "namespace": "fail-no-name",
       "replicas": {
         "available": 1,
-        "desired": 1,
         "ready": 1,
         "updated": 1
       }
     },
     {
-      "agent": "two",
       "containers": [
         {
           "image": "myapp:release-22113334",
@@ -74,13 +67,11 @@
       "namespace": "prod",
       "replicas": {
         "available": 2,
-        "desired": 2,
         "ready": 2,
         "updated": 2
       }
     },
     {
-      "agent": "two",
       "containers": [
         {
           "image": "myapp:release-22331144",
@@ -97,7 +88,6 @@
       "namespace": "prod",
       "replicas": {
         "available": 3,
-        "desired": 3,
         "ready": 3,
         "updated": 3
       }
