@@ -39,4 +39,5 @@ type ServerConfig struct {
 		Name  string `yaml:"name"`
 		Token string `yaml:"token"`
 	} `yaml:"agents"`
+	LogLevel string `yaml:"log_level"`
 }

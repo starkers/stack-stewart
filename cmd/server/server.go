@@ -38,10 +38,14 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 }
 
 func main() {
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(log.InfoLevel)
 	log.Info("loading config")
 
 	config := LoadConfig("config.yaml")
+
+	if config.LogLevel == "debug" {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	if len(config.Agents) == 0 {
 		log.Fatal("you have no agents configured.. see config.yaml")
@@ -81,11 +85,12 @@ func main() {
 	e.Logger.Info(e.Start(":8080"))
 }
 
-// JSONStringToStack ..
+// JSONStringToStack attempts to unmarshal json into a Stack{}
 func JSONStringToStack(s string) (shared.Stack, error) {
 	data := shared.Stack{}
 	err := json.Unmarshal([]byte(s), &data)
 	if err != nil {
+		log.Error("unmarshal error?")
 		log.Error(err)
 		return data, err
 	}
@@ -128,9 +133,12 @@ func GetStacks(db *buntdb.DB) echo.HandlerFunc {
 			)
 			stack.Trace = trace
 			traceString := fmt.Sprintf("%s", trace)
-			log.Error(traceString)
-			data.ArrayAppend(stack)
-			data.S("foo").SetIndex("test1", 0)
+			log.Debugf("returned data for trace: %s", traceString)
+			err = data.ArrayAppend(stack)
+			if err != nil{
+				log.Error(err)
+			}
+
 		}
 		return c.String(http.StatusOK, data.String())
 	}

@@ -1,5 +1,8 @@
 ---
 
+
+log_level: debug  # info, debug
+
 # List of agents that are allowed to communicate with tokenSecured endpoints
 agents:
   - token: 0d6f7019-da6d-4d7f-a98e-7adc7635c3b3
@@ -13,4 +16,3 @@ lanes:
     prefix: staging-
   - name: prod
     prefix: prod-
-

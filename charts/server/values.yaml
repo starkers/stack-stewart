@@ -35,6 +35,9 @@ ingress:
 
 # set config.yaml (will be given to the server) from here..
 config:
+
+  log_level: debug  # info, debug
+
   # List of agents that are allowed to communicate with tokenSecured endpoints
   agents:
       # insert the token that it generated

@@ -17,6 +17,7 @@ fullnameOverride: ""
 
 # URL of the stack stewart "server"
 server_address: "https://server.myurl.com/stacks"
+log_level: Debug # Info, Debug
 
 service:
   type: ClusterIP

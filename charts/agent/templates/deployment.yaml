@@ -35,6 +35,8 @@ spec:
           env:
             - name: SERVER_ADDRESS
               value: "{{ .Values.server_address }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.log_level }}"
 
 # TODO + ServiceMonitor/prometheus
 #         ports:
