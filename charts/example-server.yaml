@@ -8,32 +8,33 @@ ingress:
     kubernetes.io/tls-acme: "true"
   path: /
   hosts:
-    - stewart.deltashim.com
+    - your.server.hostname
   tls:
-   - secretName: acme-stewart.deltashim.com
+   - secretName: acme-your.server.hostname
      hosts:
-       - stewart.deltashim.com
+       - your.server.hostname
 
 
 # set config.yaml (will be given to the server) from here..
 config:
   # List of agents that are allowed to communicate with tokenSecured endpoints
   agents:
+
       # insert the token that it generated
-    - token: 898cc114-1a28-4664-8b30-015bdde089bf
+    - token: <UUID>
       # give it a name.. you'll need this later
-      name: deltashim
+      name: <CLUSERNAME>
 
-  # ordering probably matters to you... set that here
-  # Notice the example includes two "demo" lanes..
-  # This is for the make-believe situation of having
-  # similar "environments" but wanting to group them
-  # differently
-  lane_order:
-
-    - id: any
-      agents:
-        - deltashim
+  # # TODO: ordering not implemented yet
+  # # ordering probably matters to you... set that here
+  # # Notice the example includes two "demo" lanes..
+  # # This is for the make-believe situation of having
+  # # similar "environments" but wanting to group them
+  # # differently
+  # lane_order:
+  #   - id: any
+  #     agents:
+  #       - deltashim
 
 prometheus:
   enabled: false
