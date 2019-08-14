@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"os"
@@ -44,6 +45,12 @@ var (
 		Default("http://localhost:8080/stacks").
 		Envar("SERVER_ADDRESS").
 		Short('s').String()
+
+	CfgTick = kingpin.Flag(
+		"tick", "how often to 'tick' over and send metrics").
+		Default("15").
+		Envar("TICK").
+		Short('t').String()
 )
 
 func main() {
@@ -84,7 +91,11 @@ func main() {
 	}
 	log.Infof("secretToken: %s", secretTokenString)
 
-	tick := time.Tick(time.Second * 5)
+	// convert tick time to int64
+	tickTime, err := strconv.ParseInt(*CfgTick, 10, 64)
+	log.Infof("will send metrics every %d seconds", tickTime)
+	duration := time.Duration(tickTime) * time.Second
+	tick := time.Tick(duration)
 	for {
 		select {
 		case <-tick:
