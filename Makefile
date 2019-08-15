@@ -1,6 +1,5 @@
 .DEFAULT_GOAL := help
 
-
 APP     := starkers/stack-stewart
 
 GO111MODULES = on
@@ -47,8 +46,7 @@ help: ## Display this help screen
 
 # ensure you create an initial commit on your your git.. `git tag 0.0.1 ; git push origin 0.0.1`
 export BRANCH  := $(shell git branch | grep \* | cut -d ' ' -f 2)
-export SHA     := $(shell git describe --tags --always --dirty)
-export TAG		 := $(shell echo $(BRANCH)-$(SHA) | sed "s+/+-+g")
+export TAG     := $(shell git describe --tags --always --dirty)
 export IMG     := "$(APP):$(TAG)"
 
 # DOCKER TASKS
