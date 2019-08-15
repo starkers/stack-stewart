@@ -121,6 +121,21 @@ func UniqueStrings(input []string) []string {
 	return u
 }
 
+// GetContainerTag returns the container tag as a string, if there is none it "should" return 'latest'
+func GetContainerTag(container string) string {
+	// default tag is "latest"
+	defaultTag := "latest"
+	// split the string by ':'
+	val := strings.Split(container, ":")
+
+	// if the split only returns one then there was no ':'
+	if len(val) < 2 {
+		return defaultTag
+	}
+	// otherwise return what comes after the ':'
+	return val[1]
+}
+
 // GetLanes returns a simple (ordered) list of lanes from the data in the DB
 func GetLanes(db *buntdb.DB) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
@@ -210,6 +225,7 @@ func GetStacks(db *buntdb.DB) echo.HandlerFunc {
 				stack.Name,
 				stack.Kind,
 			)
+
 			stack.Trace = trace
 			traceString := fmt.Sprintf("%s", trace)
 			log.Debugf("returned data for trace: %s", traceString)
@@ -338,6 +354,14 @@ func PostStack(db *buntdb.DB, ServerConfig Config) echo.HandlerFunc {
 			input.Name,
 			input.Kind,
 		)
+
+		// get the tag name and append it into the input struct
+		for i, v := range input.ContainerList {
+			tag := GetContainerTag(fmt.Sprint(v.Image))
+			log.Debugf("'%d' / '%s' = '%s'", i, v, tag)
+			input.ContainerList[i].Tag = tag
+		}
+
 		inputString, err := StackToJSONString(input)
 		if err != nil {
 			log.Fatal(err)
