@@ -8,10 +8,12 @@
         <span>Stuff</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn flat color="grey">
+      <!--
+        <v-btn flat color="grey">
         <span>Sign Out</span>
         <v-icon right>exit_to_app</v-icon>
       </v-btn>
+       -->
     </v-toolbar>
 
     <v-navigation-drawer app v-model="drawer" class="primary">
