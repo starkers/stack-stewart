@@ -6,6 +6,7 @@ package shared
 type Containers struct {
 	Image string `json:"image" validate:"required"`
 	Name  string `json:"name" validate:"required"`
+	Tag   string `json:"tag"` //only server needs this
 }
 
 // Replicas ..

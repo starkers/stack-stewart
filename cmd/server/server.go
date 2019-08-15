@@ -63,7 +63,10 @@ func main() {
 	if err != nil {
 		log.Error(err)
 	}
-	//db.CreateIndex("lane", "*", buntdb.IndexJSON("lane"))
+	err = db.CreateIndex("lane", "*", buntdb.IndexJSON("lane"))
+	if err != nil {
+		log.Error(err)
+	}
 
 	e := echo.New()
 
@@ -86,6 +89,7 @@ func main() {
 	e.GET("/healthz", Healthz())
 	e.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	e.GET("/stacks", GetStacks(db))
+	e.GET("/lanes", GetLanes(db))
 	e.POST("/stacks", PostStack(db, ServerConfig), requireToken)
 
 	e.Logger.Info(e.Start(":8080"))
@@ -101,6 +105,91 @@ func JSONStringToStack(s string) (shared.Stack, error) {
 		return data, err
 	}
 	return data, err
+}
+
+// UniqueStrings takes an array of strings in, returns only the unique ones
+func UniqueStrings(input []string) []string {
+	// credit : https://kylewbanks.com/blog/creating-unique-slices-in-go
+	u := make([]string, 0, len(input))
+	m := make(map[string]bool)
+	for _, val := range input {
+		if _, ok := m[val]; !ok {
+			m[val] = true
+			u = append(u, val)
+		}
+	}
+	return u
+}
+
+// GetContainerTag returns the container tag as a string, if there is none it "should" return 'latest'
+func GetContainerTag(container string) string {
+	// default tag is "latest"
+	defaultTag := "latest"
+	// split the string by ':'
+	val := strings.Split(container, ":")
+
+	// if the split only returns one then there was no ':'
+	if len(val) < 2 {
+		return defaultTag
+	}
+	// otherwise return what comes after the ':'
+	return val[1]
+}
+
+// GetLanes returns a simple (ordered) list of lanes from the data in the DB
+func GetLanes(db *buntdb.DB) echo.HandlerFunc {
+	return func(c echo.Context) (err error) {
+		log.Debug("GetLanes")
+		raw, err := DbGetOrdered(db, "lane")
+		// create an empty gabs JSON array
+		// data, err := gabs.ParseJSON([]byte(`[]`))
+		jsonObj := gabs.New()
+		c.Response().
+			Header().
+			Set(echo.HeaderContentType,
+				echo.MIMEApplicationJSONCharsetUTF8)
+		if err != nil {
+			log.Debug(err)
+		}
+
+		if len(raw) == 0 {
+			log.Debug("GetLanes got 0 results from DB")
+			return c.String(http.StatusOK, jsonObj.String())
+		}
+		allLanes := make([]string, 0)
+		// log.Debugf("GetLanes DB search returned: '%s'", raw)
+		for i := 0; i < len(raw); i++ {
+			stringVal := raw[i]
+			stack, err := JSONStringToStack(stringVal)
+			if err != nil {
+				log.Fatal(err)
+			}
+			allLanes = append(allLanes, stack.Lane)
+		}
+
+		uniqueLanes := UniqueStrings(allLanes)
+
+		// no real ordering yet.. TODO..
+		for i, j := range uniqueLanes {
+			log.Debugf("%d - %s", i, j)
+			jsonObj.Set(j, "lanes", fmt.Sprint(i), "name")
+			// {
+			// 	"lanes": {
+			// 	  "0": {
+			// 		"order": "demo-dev"
+			// 	  },
+			// 	  "1": {
+			// 		"order": "dev"
+			// 	  },
+			// 	  "2": {
+			// 		"order": "preview"
+			// 	  }
+			// 	}
+			// }
+
+		}
+		return c.String(http.StatusOK, jsonObj.Path("lanes").String())
+	}
 }
 
 // GetStacks where we will retrieve all Stacks
@@ -121,7 +210,6 @@ func GetStacks(db *buntdb.DB) echo.HandlerFunc {
 		if len(raw) == 0 {
 			log.Debug("GetStacks for 0 results from DB")
 			return c.String(http.StatusOK, data.String())
-
 		}
 
 		log.Debugf("getstacks returned: '%s'", raw)
@@ -137,6 +225,7 @@ func GetStacks(db *buntdb.DB) echo.HandlerFunc {
 				stack.Name,
 				stack.Kind,
 			)
+
 			stack.Trace = trace
 			traceString := fmt.Sprintf("%s", trace)
 			log.Debugf("returned data for trace: %s", traceString)
@@ -257,7 +346,6 @@ func PostStack(db *buntdb.DB, ServerConfig Config) echo.HandlerFunc {
 		if err != nil {
 			log.Error(err)
 		}
-		log.Debugf("======== %s ======", agentName)
 
 		input.Agent = agentName
 		trace := GetTraceName(
@@ -266,6 +354,14 @@ func PostStack(db *buntdb.DB, ServerConfig Config) echo.HandlerFunc {
 			input.Name,
 			input.Kind,
 		)
+
+		// get the tag name and append it into the input struct
+		for i, v := range input.ContainerList {
+			tag := GetContainerTag(fmt.Sprint(v.Image))
+			log.Debugf("'%d' / '%s' = '%s'", i, v, tag)
+			input.ContainerList[i].Tag = tag
+		}
+
 		inputString, err := StackToJSONString(input)
 		if err != nil {
 			log.Fatal(err)

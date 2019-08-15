@@ -2,20 +2,23 @@
   <nav>
 
     <v-toolbar flat app>
-      <v-toolbar-side-icon @click="drawer = !drawer" class="grey--text"></v-toolbar-side-icon>
+      <!-- <v-toolbar-side-icon @click="drawer = !drawer" class="grey--text"></v-toolbar-side-icon> -->
       <v-toolbar-title class="text-uppercase grey--text">
         <span class="font-weight-light">Stack</span>
-        <span>Stuff</span>
+        <span>Stewart</span>
       </v-toolbar-title>
       <v-spacer></v-spacer>
+
       <!--
         <v-btn flat color="grey">
         <span>Sign Out</span>
         <v-icon right>exit_to_app</v-icon>
       </v-btn>
        -->
+
     </v-toolbar>
 
+    <!-- TODO: removing this until inspiration hits -->
     <v-navigation-drawer app v-model="drawer" class="primary">
       <v-list>
         <v-list-tile v-for="link in links" :key="link.text" router :to="link.route">

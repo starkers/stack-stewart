@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "vue": "^2.6.10",
+    "vue-crono": "^2.0.4",
     "vue-router": "^3.1.2",
     "vuetify": "^1.5.16"
   },
