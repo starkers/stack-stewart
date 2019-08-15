@@ -6,12 +6,13 @@
         <v-text-field
           v-model="search"
           append-icon="search"
-          label="Search"
+          label="filter"
           single-line
           hide-details
         ></v-text-field>
 
         <v-spacer></v-spacer>
+        <!-- <v-btn v-on:click="startLoad">refresh</v-btn> -->
 
       </v-card-title>
 
@@ -21,7 +22,7 @@
         :search="search"
         class="elevation-3"
         :rows-per-page-items="[100, 200, 300, 400]"
-        dark
+
       >
 
         <template slot="items" slot-scope="props">
@@ -34,7 +35,7 @@
 
                 <!-- <v-row align="center" v-for="c in props.item.containers" v-bind:key="c.name" v-on="on2"> -->
                 <v-row align="center" v-for="c in props.item.containers" v-bind:key="c.name">
-                  <v-col class="text-center" cols="12" sm="4" >
+                  <v-col class="text-center" cols="1" sm="4" >
                     {{ c.tag }}
                   </v-col>
                   <v-col>
@@ -54,14 +55,14 @@
 
           <td>
             <v-row align="center">
-              <v-col class="text-center" cols="12" sm="4">
+              <v-col class="text-center" cols="1" sm="4">
                 <div class="my-2">
                   <v-tooltip right>
                     <template v-slot:activator="{ on }">
                       <!-- TODO: change chip colours on errors -->
                       <v-chip
                         class="ma-2"
-                        color="darken-1"
+                        color="success"
                         text-color="white"
                         v-on="on"
                       >
@@ -88,15 +89,15 @@
     </v-card>
 
   </div>
+
 </template>
 
 <script>
 
 // See: https://github.com/iamshaunjp/vuetify-playlist/blob/lesson-16/todo-ninja/src/views/Dashboard.vue#L23
 export default {
-
-
   data() {
+
     return {
       search: '',
       itemsPerPage: 100,
@@ -117,22 +118,29 @@ export default {
       ],
     }
   },
-  mounted() {
-    this.getStacks()
-  },
-  methods: {
+  methods:{
     async getStacks() {
       try {
         const response = await fetch('/stacks')
         const data = await response.json()
-        console.log("hello world")
+        console.log("retreiving /stacks")
         this.stacks = data
       } catch (error) {
         console.error(error)
       }
     }
+  },
+  // https://www.npmjs.com/package/vue-crono
+  cron: {
+    time: 5000,  // moar data every 5 seconds
+    method: 'getStacks',
+    autoStart: true
+  },
+  mounted(){
+      this.getStacks(); // call on first load of page
   }
 }
+
 </script>
 
 <style>
